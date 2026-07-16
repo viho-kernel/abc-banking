@@ -1,21 +1,30 @@
 pipeline {
     agent any 
+
     environment {
         APP_NAME = 'abc-banking'
         ENVIRONMENT = "dev"
-        shortCommit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
     }
 
     options {
-    skipDefaultCheckout(true)
-}
+        skipDefaultCheckout(true)
+    }
+
     stages {
         stage("checkout") {
             steps {
-
                 checkout scm
             }
         }
+
+        stage("Set Commit Hash") {
+            steps {
+                script {
+                    env.shortCommit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                }
+            }
+        }
+
         stage("Jenkins Environment") {
             steps {
                 sh '''
@@ -24,9 +33,11 @@ pipeline {
                 echo "Workspace: $WORKSPACE"
                 echo "Branch: $BRANCH_NAME"
                 echo "Build URL: $BUILD_URL"
+                echo "Commit: $shortCommit"
                 '''
             }
         }
+
         stage('Installing Dependencies') {
             steps {
                 dir('app') {
@@ -34,6 +45,7 @@ pipeline {
                 }
             }
         }
+
         stage('Build') {
             steps {
                 dir('app'){
@@ -41,6 +53,7 @@ pipeline {
                 }
             }
         }
+
         stage('Test') {
             steps {
                 dir('app') {
@@ -48,7 +61,8 @@ pipeline {
                 }
             }
         }
-                stage('Docker Build') {
+
+        stage('Docker Build') {
             steps {
                 sh "docker build -t abc-banking:${shortCommit} ."
             }
@@ -56,14 +70,16 @@ pipeline {
     }
 
     post {
-         success {
+        success {
             echo "Pipeline completed successfully!"
         }
         failure {
             echo "Pipeline failed!"
         }
         always {
-            cleanWs()
+            node {
+                cleanWs()
+            }
         }
     }
 }
