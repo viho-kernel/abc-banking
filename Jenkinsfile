@@ -3,6 +3,7 @@ pipeline {
     environment {
         APP_NAME = 'abc-banking'
         ENVIRONMENT = "dev"
+        shortCommit = env.GIT_COMMIT.take(7)
     }
 
     options {
@@ -49,7 +50,6 @@ pipeline {
         }
                 stage('Docker Build') {
             steps {
-                def shortCommit = env.GIT_COMMIT.take(7)
                 sh "docker build -t abc-banking:${shortCommit} ."
             }
         }
