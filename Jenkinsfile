@@ -64,7 +64,7 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh "docker build -t abc-banking:${shortCommit} ."
+                sh "docker build -t ${APP_NAME}:${shortCommit} ."
             }
         }
     }
