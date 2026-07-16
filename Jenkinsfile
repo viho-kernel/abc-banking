@@ -3,7 +3,7 @@ pipeline {
     environment {
         APP_NAME = 'abc-banking'
         ENVIRONMENT = "dev"
-        shortCommit = env.GIT_COMMIT.take(7)
+        shortCommit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
     }
 
     options {
@@ -63,7 +63,9 @@ pipeline {
             echo "Pipeline failed!"
         }
         always {
+           node {
             cleanWs()
+        }
         }
     }
 }
