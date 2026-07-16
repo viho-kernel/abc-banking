@@ -47,6 +47,12 @@ pipeline {
                 }
             }
         }
+                stage('Docker Build') {
+            steps {
+                def shortCommit = env.GIT_COMMIT.take(7)
+                sh "docker build -t abc-banking:${shortCommit} ."
+            }
+        }
     }
 
     post {
