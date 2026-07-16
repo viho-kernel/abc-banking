@@ -4,6 +4,10 @@ pipeline {
         APP_NAME = 'abc-banking'
         ENVIRONMENT = "dev"
     }
+
+    options {
+    skipDefaultCheckout(true)
+}
     stages {
         stage("checkout") {
             steps {
