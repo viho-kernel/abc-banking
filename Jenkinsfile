@@ -11,6 +11,17 @@ pipeline {
                 checkout scm
             }
         }
+        stage("Jenkins Environment") {
+            steps {
+                sh '''
+                echo "Build Number: $BUILD_NUMBER" 
+                echo "Job Name: $JOB_NAME"
+                echo "Workspace: $WORKSPACE"
+                echo "Branch: $BRANCH_NAME"
+                echo "Build URL: $BUILD_URL"
+                '''
+            }
+        }
         stage('Installing Dependencies') {
             steps {
                 dir('app') {
