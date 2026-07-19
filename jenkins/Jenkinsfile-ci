@@ -25,12 +25,12 @@ pipeline {
 
         stage('Get Commit ID') {
             steps {
-                script {
-                    env.SHORT_COMMIT = sh(
-                        script: "git rev-parse --short HEAD",
-                        returnStdout: true
-                    ).trim()
-                }
+               script {
+    SHORT_COMMIT = sh(
+        script: "git rev-parse --short HEAD",
+        returnStdout: true
+    ).trim()
+}
             }
         }
 
@@ -82,15 +82,26 @@ pipeline {
             }
         }
 
+        stage('Who am I?') {
+    steps {
+        sh '''
+        whoami
+        pwd
+        echo $HOME
+        ls -la ~/.docker || true
+        '''
+    }
+}
+
         stage('Login to Amazon ECR') {
             steps {
-                sh """
-                aws ecr get-login-password --region ${AWS_REGION} | \
-                docker login \
-                --username AWS \
-                --password-stdin \
-                ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com
-                """
+sh """
+aws ecr get-login-password --region ${AWS_REGION} | \
+docker login \
+--username AWS \
+--password-stdin \
+${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com
+"""
             }
         }
 
@@ -120,6 +131,16 @@ pipeline {
                 """
             }
         }
+
+        stage('Debug Variables') {
+    steps {
+        sh '''
+        echo "SHORT_COMMIT=$SHORT_COMMIT"
+        echo "IMAGE=$IMAGE"
+        docker images
+        '''
+    }
+}
     }
 
     post {
