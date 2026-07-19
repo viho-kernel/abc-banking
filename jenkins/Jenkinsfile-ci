@@ -1,12 +1,13 @@
 pipeline {
-    agent any 
+
+    agent any
 
     environment {
-        APP_NAME = 'abc-banking'
-        ENVIRONMENT = "dev"
-        AWS_REGION = "us-east-1"
+        APP_NAME    = "abc-banking"
+        AWS_REGION  = "us-east-1"
         AWS_ACCOUNT = "992989046853"
-        ECR_REPO = "abc-banking"
+        ECR_REPO    = "abc-banking"
+
         IMAGE = "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
     }
 
@@ -15,105 +16,122 @@ pipeline {
     }
 
     stages {
-        //checkout stage
-        stage("checkout") {
+
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        //Tagging Hash Commit
-        stage("Set Commit Hash") {
+        stage('Get Commit ID') {
             steps {
                 script {
-                    env.shortCommit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim(7)
+                    env.SHORT_COMMIT = sh(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
                 }
             }
         }
-        // Settin Jenkins Environment Variables
-        stage("Jenkins Environment") {
+
+        stage('Jenkins Environment') {
             steps {
                 sh '''
-                echo "Build Number: $BUILD_NUMBER" 
-                echo "Job Name: $JOB_NAME"
-                echo "Workspace: $WORKSPACE"
-                echo "Branch: $BRANCH_NAME"
-                echo "Build URL: $BUILD_URL"
-                echo "Commit: $shortCommit"
+                echo "===================================="
+                echo "Build Number : $BUILD_NUMBER"
+                echo "Job Name     : $JOB_NAME"
+                echo "Workspace    : $WORKSPACE"
+                echo "Branch Name  : $BRANCH_NAME"
+                echo "Build URL    : $BUILD_URL"
+                echo "Commit ID    : $SHORT_COMMIT"
+                echo "===================================="
                 '''
             }
         }
-         
-         // Installing Dependencies
-        stage('Installing Dependencies') {
+
+        stage('Install Dependencies') {
             steps {
                 dir('app') {
                     sh 'npm ci'
                 }
             }
         }
-           // Building .
-        stage('Build') {
+
+        stage('Build Application') {
             steps {
-                dir('app'){
+                dir('app') {
                     sh 'npm run build'
                 }
             }
         }
-        // Testing 
-        stage('Test') {
+
+        stage('Run Tests') {
             steps {
                 dir('app') {
                     sh 'npm test'
                 }
             }
         }
-        
-        //Building Docker image
-        stage('Docker Build') {
+
+        stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${APP_NAME}:${shortCommit} ."
+                sh """
+                docker build \
+                -t ${APP_NAME}:${SHORT_COMMIT} .
+                """
             }
         }
 
-stage('ECR Login') {
-    steps {
-        sh '''
-        aws ecr get-login-password --region us-east-1 \
-        | docker login --username AWS --password-stdin 992989046853.dkr.ecr.us-east-1.amazonaws.com
-        '''
+        stage('Login to Amazon ECR') {
+            steps {
+                sh """
+                aws ecr get-login-password --region ${AWS_REGION} | \
+                docker login \
+                --username AWS \
+                --password-stdin \
+                ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                """
+            }
+        }
+
+        stage('Tag Docker Image') {
+            steps {
+                sh """
+                docker tag \
+                ${APP_NAME}:${SHORT_COMMIT} \
+                ${IMAGE}:${SHORT_COMMIT}
+                """
+            }
+        }
+
+        stage('Push Image to Amazon ECR') {
+            steps {
+                sh """
+                docker push ${IMAGE}:${SHORT_COMMIT}
+                """
+            }
+        }
+
+        stage('Verify Docker Images') {
+            steps {
+                sh """
+                echo "Local Docker Images"
+                docker images | grep ${APP_NAME}
+                """
+            }
+        }
     }
-}
 
-stage('Tag Docker Image') {
-    steps {
-        sh """
-        docker tag ${APP_NAME}:${shortCommit} \
-        992989046853.dkr.ecr.us-east-1.amazonaws.com/${APP_NAME}:${shortCommit}
-        """
-    }
-}
-
-stage('Push Docker Image') {
-    steps {
-        sh """
-        docker push \
-        992989046853.dkr.ecr.us-east-1.amazonaws.com/${APP_NAME}:${shortCommit}
-        """
-    }
-}
-
-
-
-    }
-    //Post section
     post {
+
         success {
-            echo "Pipeline completed successfully!"
+            echo "CI Pipeline Completed Successfully."
         }
+
         failure {
-            echo "Pipeline failed!"
+            echo "CI Pipeline Failed."
         }
+
         always {
             cleanWs()
         }
