@@ -56,7 +56,7 @@ pipeline {
 
    stage('Docker Build') {
     steps {
-        dockerBuild(APP_NAME, SHORT_COMMIT)
+        dockerBuild(APP_NAME, env.SHORT_COMMIT)
     }
    }
 
@@ -78,13 +78,13 @@ stage('Docker Login') {
 }
 stage('Tag Docker Image') {
     steps {
-        dockerTag(APP_NAME, IMAGE, SHORT_COMMIT)
+        dockerTag(APP_NAME, IMAGE, env.SHORT_COMMIT)
     }
 }
 
 stage('Push Image to Amazon ECR') {
     steps {
-        dockerPush(IMAGE, SHORT_COMMIT)
+        dockerPush(IMAGE, env.SHORT_COMMIT)
     }
 }
 
