@@ -59,7 +59,6 @@ pipeline {
 stage('Deploy Container') {
     steps {
         sh """
-        docker run -d \
 docker run -d \
   --restart unless-stopped \
   --name ${CONTAINER_NAME} \
