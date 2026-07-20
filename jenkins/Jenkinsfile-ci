@@ -57,14 +57,11 @@ pipeline {
     }
 }
 
-        stage('Build Docker Image') {
-            steps {
-                sh """
-                docker build \
-                -t ${APP_NAME}:${SHORT_COMMIT} .
-                """
-            }
-        }
+   stage('Docker Build') {
+    steps {
+        dockerBuild(APP_NAME, SHORT_COMMIT)
+    }
+   }
 
         stage('Who am I?') {
     steps {
@@ -75,36 +72,19 @@ pipeline {
         ls -la ~/.docker || true
         '''
     }
+} 
+
+stage ('Docker loin') {
+    ecrLogin(AWS_REGION, AWS_ACCOUNT)
 }
-
-        stage('Login to Amazon ECR') {
-            steps {
-sh """
-aws ecr get-login-password --region ${AWS_REGION} | \
-docker login \
---username AWS \
---password-stdin \
-${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com
-"""
-            }
-        }
-
         stage('Tag Docker Image') {
-            steps {
-                sh """
-                docker tag \
-                ${APP_NAME}:${SHORT_COMMIT} \
-                ${IMAGE}:${SHORT_COMMIT}
-                """
-            }
+
+            dockerTag(APP_NAME, IMAGE, SHORT_COMMIT)
+
         }
 
         stage('Push Image to Amazon ECR') {
-            steps {
-                sh """
-                docker push ${IMAGE}:${SHORT_COMMIT}
-                """
-            }
+            dockerPush(IMAGE, SHORT_COMMIT)
         }
 
         stage('Verify Docker Images') {
