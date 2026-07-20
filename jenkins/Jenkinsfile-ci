@@ -76,6 +76,7 @@ stage('Docker Login') {
         ecrLogin(AWS_REGION, AWS_ACCOUNT)
     }
 }
+
 stage('Tag Docker Image') {
     steps {
         dockerTag(APP_NAME, IMAGE, env.SHORT_COMMIT)
