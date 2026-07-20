@@ -74,18 +74,22 @@ pipeline {
     }
 } 
 
-stage ('Docker loin') {
-    ecrLogin(AWS_REGION, AWS_ACCOUNT)
+stage('Docker Login') {
+    steps {
+        ecrLogin(AWS_REGION, AWS_ACCOUNT)
+    }
 }
-        stage('Tag Docker Image') {
+stage('Tag Docker Image') {
+    steps {
+        dockerTag(APP_NAME, IMAGE, SHORT_COMMIT)
+    }
+}
 
-            dockerTag(APP_NAME, IMAGE, SHORT_COMMIT)
-
-        }
-
-        stage('Push Image to Amazon ECR') {
-            dockerPush(IMAGE, SHORT_COMMIT)
-        }
+stage('Push Image to Amazon ECR') {
+    steps {
+        dockerPush(IMAGE, SHORT_COMMIT)
+    }
+}
 
         stage('Verify Docker Images') {
             steps {
