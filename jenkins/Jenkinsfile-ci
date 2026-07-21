@@ -65,7 +65,7 @@ stage('Trivy Scan') {
         sh """
         trivy image \
         --severity HIGH,CRITICAL \
-        --exit-code 0 \
+        --exit-code 1 \
         ${APP_NAME}:${env.SHORT_COMMIT}
         """
     }
