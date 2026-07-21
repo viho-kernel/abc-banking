@@ -60,16 +60,16 @@ pipeline {
     }
    }
 
-        stage('Who am I?') {
+stage('Trivy Scan') {
     steps {
-        sh '''
-        whoami
-        pwd
-        echo $HOME
-        ls -la ~/.docker || true
-        '''
+        sh """
+        trivy image \
+        --severity HIGH, CRITICAL \
+        --exit-code 1 \
+        ${APP_NAME}:${SHORT_COMMIT}
+        """
     }
-} 
+}
 
 stage('Docker Login') {
     steps {
