@@ -15,6 +15,7 @@ pipeline {
     options {
         skipDefaultCheckout(true)
         timestamps()
+        //Remove old logs after certain builds
         buildDiscarder(
         logRotator(
             numToKeepStr: '20'
@@ -39,7 +40,8 @@ pipeline {
 
         stage('Tool Validation') {
             steps {
-                checkTools()
+                // Now you can pass multiple arguments perfectly
+                checkTools('git', 'aws', 'docker')
             }
         }
         stage('Checkout') {
