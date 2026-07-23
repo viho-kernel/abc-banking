@@ -176,7 +176,7 @@ pipeline {
     }
     steps {
         printBanner("Deploying Application")
-       deployToEc2(
+       deployToEC2(
          env.DEPLOY_HOST,
             env.IMAGE,
             "${env.SHORT_COMMIT}-${env.BUILD_NUMBER}"
