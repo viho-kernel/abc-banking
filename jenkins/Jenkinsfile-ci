@@ -10,6 +10,7 @@ pipeline {
         AWS_ACCOUNT = '992989046853'
         ECR_REPO    = 'abc-banking'
         IMAGE       = "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        DEPLOY_HOST = "54.221.80.82"
     }
 
     options {
@@ -168,19 +169,18 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-    when {
-        expression {
-            params.ENVIRONMENT == 'prod'
-        }
-    }
 
+    stage('Deploy to EC2') {
+    when {
+        branch 'main'
+    }
     steps {
-        sh '''
-        echo "Deploying Application..."
-        sleep 10
-        echo "Deployment Successful"
-        '''
+        printBanner("Deploying Application")
+       deployToEc2(
+        env.DEPLOY_HOST,
+        env.IMAGE,
+        "$(env.SHORT_COMMIT)-$(env.BUILD_NUMBER)"
+       )
     }
 }
 
