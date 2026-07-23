@@ -1,0 +1,154 @@
+
+@Library('banking-shared-library') _
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME    = 'abc-banking'
+        AWS_REGION  = 'us-east-1'
+        AWS_ACCOUNT = '992989046853'
+        ECR_REPO    = 'abc-banking'
+        IMAGE       = "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+    }
+
+    options {
+        skipDefaultCheckout(true)
+        timestamps()
+        //Remove old logs after certain builds
+        buildDiscarder(
+        logRotator(
+            numToKeepStr: '20'
+        )
+    )
+    }
+
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'qa', 'prod'],
+            description: 'Select Environment'
+        )
+    }
+
+    stages {
+        stage('System Information') {
+            steps {
+                systemInfo()
+            }
+        }
+
+        stage('Tool Validation') {
+            steps {
+                // Now you can pass multiple arguments perfectly
+                checkTools('git', 'aws', 'docker')
+            }
+        }
+        stage('Checkout') {
+            steps {
+                printBanner('Checkout Source Code')
+                checkout scm
+            }
+        }
+
+        stage('Get Commit ID') {
+            steps {
+                script {
+                    env.SHORT_COMMIT = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
+                }
+            }
+        }
+
+        stage('Jenkins Environment') {
+            steps {
+                sh '''
+                echo "===================================="
+                echo "Build Number : $BUILD_NUMBER"
+                echo "Job Name     : $JOB_NAME"
+                echo "Workspace    : $WORKSPACE"
+                echo "Branch Name  : $BRANCH_NAME"
+                echo "Build URL    : $BUILD_URL"
+                echo "Commit ID    : $SHORT_COMMIT"
+                echo "===================================="
+                '''
+            }
+        }
+
+        stage('Build Application') {
+            steps {
+                printBanner('Building Application')
+                buildApp()
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                printBanner('Building Docker Image')
+                dockerBuild(APP_NAME, env.SHORT_COMMIT)
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                printBanner('Scanning Docker Image')
+                sh """
+        trivy image \
+        --severity HIGH,CRITICAL \
+        --exit-code 0 \
+        ${APP_NAME}:${env.SHORT_COMMIT}
+        """
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                ecrLogin(AWS_REGION, AWS_ACCOUNT)
+            }
+        }
+
+        stage('Tag Docker Image') {
+            steps {
+                dockerTag(APP_NAME, IMAGE, env.SHORT_COMMIT)
+            }
+        }
+
+        stage('Push Image to Amazon ECR') {
+            when {
+                branch 'main'
+            }
+
+            steps {
+                printBanner('Pushing to Amazon ECR')
+                dockerPush(IMAGE, env.SHORT_COMMIT, env.BUILD_NUMBER)
+            }
+        }
+
+        stage('Debug Variables') {
+            steps {
+                sh '''
+        echo "SHORT_COMMIT=$SHORT_COMMIT"
+        echo "IMAGE=$IMAGE"
+        docker images
+        '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'CI Pipeline Completed Successfully.'
+        }
+
+        failure {
+            echo 'CI Pipeline Failed.'
+        }
+
+        always {
+            dockerCleanup()
+            cleanWs()
+        }
+    }
+}

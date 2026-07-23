@@ -1,0 +1,96 @@
+pipeline {
+
+    agent any
+
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: '', description: 'Docker image tag to deploy')
+    }
+
+    environment {
+        AWS_REGION = 'us-east-1'
+        AWS_ACCOUNT = '992989046853'
+        ECR_REPO = 'abc-banking'
+        IMAGE = "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        CONTAINER_NAME = 'banking-app'
+    }
+
+    stages {
+
+        stage('Show Deployment Info') {
+            steps {
+                echo "Deploying image: ${IMAGE}:${params.IMAGE_TAG}"
+            }
+        }
+
+        stage('Login to ECR') {
+            steps {
+                sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS --password-stdin $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com
+                '''
+            }
+        }
+
+        stage('Validate Input') {
+    steps {
+        script {
+            if (!params.IMAGE_TAG?.trim()) {
+                error("IMAGE_TAG is required")
+            }
+        }
+    }
+}
+
+        stage('Pull Image') {
+            steps {
+                sh "docker pull ${IMAGE}:${params.IMAGE_TAG}"
+            }
+        }
+
+        stage('Stop Existing Container') {
+            steps {
+                sh '''
+                docker stop $CONTAINER_NAME || true
+                docker rm $CONTAINER_NAME || true
+                '''
+            }
+        }
+
+stage('Deploy Container') {
+    steps {
+        sh """
+docker run -d \
+  --restart unless-stopped \
+  --name ${CONTAINER_NAME} \
+  -p 3000:3000 \
+  ${IMAGE}:${params.IMAGE_TAG}
+        """
+    }
+}
+
+stage('Verify Running Container') {
+    steps {
+        sh '''
+        docker ps
+        docker images | grep abc-banking
+        '''
+    }
+}
+
+        stage('Health Check') {
+            steps {
+                sh 'sleep 5'
+                sh 'curl -f http://localhost:3000'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment Successful!"
+        }
+        failure {
+            echo "Deployment Failed!"
+        }
+    }
+}
