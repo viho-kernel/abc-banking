@@ -160,6 +160,7 @@ pipeline {
                     input(
                         message: 'Deploy to production?',
                         ok: 'Deploy'
+                        submitter: 'vihari, admin'
                     )
 
                     echo "Approval received!"
