@@ -103,7 +103,13 @@ pipeline {
             }
         }
 
-        stage('Docker Login') {
+        stage ('Docker') {
+             when {
+                branch 'main'
+            }
+
+            stages {
+                 stage('Docker Login') {
             steps {
                 ecrLogin(AWS_REGION, AWS_ACCOUNT)
             }
@@ -116,15 +122,16 @@ pipeline {
         }
 
         stage('Push Image to Amazon ECR') {
-            when {
-                branch 'main'
-            }
 
             steps {
                 printBanner('Pushing to Amazon ECR')
-                dockerPush(IMAGE, env.SHORT_COMMIT, env.BUILD_NUMBER)
+                dockerPush(IMAGE, env.SHORT_COMMIT)
             }
         }
+            }
+        }
+
+       
 
         stage('Debug Variables') {
             steps {
