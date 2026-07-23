@@ -159,7 +159,7 @@ pipeline {
                 timeout(time: 15, unit: 'MINUTES') {
                     input(
                         message: 'Deploy to production?',
-                        ok: 'Deploy'
+                        ok: 'Deploy',
                         submitter: 'vihari, admin'
                     )
 
