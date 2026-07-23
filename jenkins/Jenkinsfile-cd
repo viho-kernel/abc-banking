@@ -12,6 +12,7 @@ pipeline {
         ECR_REPO = 'abc-banking'
         IMAGE = "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
         CONTAINER_NAME = 'banking-app'
+        DEPLOY_HOST = "54.221.80.82"
     }
 
     stages {

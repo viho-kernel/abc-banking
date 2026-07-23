@@ -10,6 +10,7 @@ pipeline {
         AWS_ACCOUNT = '992989046853'
         ECR_REPO    = 'abc-banking'
         IMAGE       = "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        DEPLOY_HOST = "54.221.80.82"
     }
 
     options {
@@ -21,6 +22,12 @@ pipeline {
             numToKeepStr: '20'
         )
     )
+            disableConcurrentBuilds()
+
+            timeout(
+                time: 30,
+                unit: 'MINUTES'
+            )
     }
 
     parameters {
@@ -58,6 +65,15 @@ pipeline {
                         script: 'git rev-parse --short HEAD',
                         returnStdout: true
                     ).trim()
+                }
+            }
+        }
+
+        stage('Set Build Name') {
+            steps {
+                script {
+                    currentBuild.displayName = "#${BUILD_NUMBER}-${params.ENVIRONMENT}-${SHORT_COMMIT}"
+                    currentBuild.description = "Branch: ${BRANCH_NAME}"
                 }
             }
         }
@@ -103,9 +119,17 @@ pipeline {
             }
         }
 
-        stage('Docker Login') {
+        stage ('Docker') {
+             when {
+                branch 'main'
+            }
+
+            stages {
+                 stage('Docker Login') {
             steps {
+                retry(3) {
                 ecrLogin(AWS_REGION, AWS_ACCOUNT)
+                }
             }
         }
 
@@ -116,15 +140,49 @@ pipeline {
         }
 
         stage('Push Image to Amazon ECR') {
-            when {
-                branch 'main'
-            }
 
             steps {
                 printBanner('Pushing to Amazon ECR')
                 dockerPush(IMAGE, env.SHORT_COMMIT)
             }
         }
+            }
+        }
+
+        stage('Approval') {
+            when {
+                expression {
+                    params.ENVIRONMENT == 'prod'
+                }
+            }
+
+            steps {
+                timeout(time: 15, unit: 'MINUTES') {
+                    input(
+                        message: 'Deploy to production?',
+                        ok: 'Deploy',
+                        submitter: 'vihari, admin'
+                    )
+
+                    echo "Approval received!"
+                }
+            }
+        }
+
+
+    stage('Deploy to EC2') {
+    when {
+        branch 'main'
+    }
+    steps {
+        printBanner("Deploying Application")
+       deployToEc2(
+        env.DEPLOY_HOST,
+        env.IMAGE,
+        "$(env.SHORT_COMMIT)-$(env.BUILD_NUMBER)"
+       )
+    }
+}
 
         stage('Debug Variables') {
             steps {
