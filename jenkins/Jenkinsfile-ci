@@ -126,7 +126,9 @@ pipeline {
             stages {
                  stage('Docker Login') {
             steps {
+                retry(3) {
                 ecrLogin(AWS_REGION, AWS_ACCOUNT)
+                }
             }
         }
 
@@ -146,6 +148,25 @@ pipeline {
             }
         }
 
+        stage('Approval') {
+            when {
+                expression {
+                    params.ENVIRONMENT == 'prod'
+                }
+            }
+
+            steps {
+                timeout(time: 15, unit: 'MINUTES') {
+                    input(
+                        message: 'Deploy to production?',
+                        ok: 'Deploy'
+                    )
+                }
+            }
+        }
+
+
+
        
 
         stage('Debug Variables') {
@@ -157,6 +178,8 @@ pipeline {
         '''
             }
         }
+
+
     }
 
     post {
