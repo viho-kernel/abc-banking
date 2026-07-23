@@ -116,9 +116,13 @@ pipeline {
         }
 
         stage('Push Image to Amazon ECR') {
+            when {
+                branch 'main'
+            }
+
             steps {
                 printBanner('Pushing to Amazon ECR')
-                dockerPush(IMAGE, env.SHORT_COMMIT)
+                dockerPush(IMAGE, env.SHORT_COMMIT, env.BUILD_NUMBER)
             }
         }
 
