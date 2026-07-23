@@ -161,6 +161,8 @@ pipeline {
                         message: 'Deploy to production?',
                         ok: 'Deploy'
                     )
+
+                    echo "Approval received!"
                 }
             }
         }
