@@ -21,6 +21,12 @@ pipeline {
             numToKeepStr: '20'
         )
     )
+            disableConcurrentBuilds()
+
+            timeout(
+                time: 30,
+                unit: 'MINUTES'
+            )
     }
 
     parameters {
@@ -58,6 +64,15 @@ pipeline {
                         script: 'git rev-parse --short HEAD',
                         returnStdout: true
                     ).trim()
+                }
+            }
+        }
+
+        stage('Set Build Name') {
+            steps {
+                script {
+                    currentBuild.displayName = "#${BUILD_NUMBER}-${params.ENVIRONMENT}-${SHORT_COMMIT}"
+                    currentBuild.description = "Branch: ${BRANCH_NAME}"
                 }
             }
         }
