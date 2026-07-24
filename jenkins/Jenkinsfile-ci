@@ -168,7 +168,12 @@ pipeline {
                 }
             }
         }
-
+    stage('Image Information') {
+        steps {
+            imageInformation(env.IMAGE, "
+            ${env.SHORT_COMMIT}-${env.BUILD_NUMBER}")
+        }
+    }
 
     stage('Deploy to EC2') {
     when {
