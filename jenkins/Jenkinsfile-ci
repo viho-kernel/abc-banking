@@ -170,8 +170,7 @@ pipeline {
         }
     stage('Image Information') {
         steps {
-            imageInformation(env.IMAGE, "
-            ${env.SHORT_COMMIT}-${env.BUILD_NUMBER}")
+            imageInformation(env.IMAGE, "${env.SHORT_COMMIT}-${env.BUILD_NUMBER}")
         }
     }
 
